@@ -92,12 +92,18 @@
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static char GetNextSearchStringChar(string searchString, int searchStringLength,
-            ref int searchStringIndex, out bool searchStringCharIsUpper)
+     ref int searchStringIndex, out bool searchStringCharIsUpper)
         {
+            if (searchStringIndex >= searchStringLength)
+            {
+                searchStringCharIsUpper = false;
+                return ' ';
+            }
+
             char searchStringChar = NextNonWhitespaceChar(searchString, searchStringLength, ref searchStringIndex);
 
             searchStringCharIsUpper = char.IsUpper(searchStringChar);
-            if ( ! searchStringCharIsUpper && IsUppercaseLetter(searchStringChar))
+            if (!searchStringCharIsUpper && IsUppercaseLetter(searchStringChar))
                 searchStringChar = char.ToLower(searchStringChar);
 
             return searchStringChar;
@@ -106,10 +112,16 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static char NextNonWhitespaceChar(string searchString, int searchStringLength, ref int charIndex)
         {
+            if (charIndex >= searchStringLength)
+                return ' ';
+
             char character = searchString[charIndex];
 
-            while (character == ' ' && ++charIndex < searchStringLength)
+            while (character == ' ' && charIndex + 1 < searchStringLength)
+            {
+                charIndex++;
                 character = searchString[charIndex];
+            }
 
             return character;
         }
