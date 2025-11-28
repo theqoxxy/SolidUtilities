@@ -38,6 +38,9 @@
 
             try
             {
+                if (string.IsNullOrEmpty(assemblyName))
+                    return null;
+
                 assembly = Assembly.Load(assemblyName);
             }
             catch (Exception e)
