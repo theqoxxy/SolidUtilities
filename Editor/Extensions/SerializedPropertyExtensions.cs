@@ -36,6 +36,9 @@
             if (!property.propertyPath.Contains('.'))
                 return null;
 
+            if (string.IsNullOrEmpty(property.propertyPath))
+                return null;
+
             var parentPropertyPath = property.propertyPath.GetSubstringBeforeLast('.');
             if (parentPropertyPath.EndsWith(".Array"))
             {
