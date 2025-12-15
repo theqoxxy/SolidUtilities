@@ -63,35 +63,71 @@
         public static T GetObject<T>(this SerializedProperty property) => (T) property.GetObject();
 
         public static object GetObject(this SerializedProperty property)
+{
+    var propertyPaths = property.propertyPath.Split('.');
+    
+    // Get the root property
+    var rootProperty = property.serializedObject.FindProperty(propertyPaths[0]);
+    if (rootProperty == null)
+        return null;
+        
+    var fieldInfo = rootProperty.GetFieldInfo();
+    if (fieldInfo == null)
+        return null;
+        
+    // Get the root object from the serialized object's target
+    object target = fieldInfo.GetValue(property.serializedObject.targetObject);
+    if (target == null)
+        return null;
+
+    var currentProperty = rootProperty;
+    
+    // Traverse through the property path
+    foreach (string path in propertyPaths.Skip(1))
+    {
+        if (path == "Array")
+            continue;
+
+        if (path.StartsWith("data["))
         {
-            var propertyPaths = property.propertyPath.Split('.');
-
-            var currentProperty = property.serializedObject.FindProperty(propertyPaths[0]);
-            var fieldInfo = currentProperty.GetFieldInfo();
-            object target = fieldInfo.GetValue(property.serializedObject.targetObject);
-
-            foreach (string path in propertyPaths.Skip(1))
+            // Handle array elements
+            int startIndex = path.IndexOf('[') + 1;
+            int endIndex = path.IndexOf(']');
+            if (startIndex > 0 && endIndex > startIndex)
             {
-                if (path == "Array")
+                string indexStr = path.Substring(startIndex, endIndex - startIndex);
+                if (int.TryParse(indexStr, out int index))
                 {
-                    continue;
-                }
-
-                if (path.StartsWith("data["))
-                {
-                    int index = int.Parse(path[5].ToString());
                     currentProperty = currentProperty.GetArrayElementAtIndex(index);
-                    target = ((IList) target)[index];
-                }
-                else
-                {
-                    currentProperty = currentProperty.FindPropertyRelative(path);
-                    fieldInfo = currentProperty.GetFieldInfo();
-                    target = fieldInfo.GetValue(target);
+                    
+                    // Safely handle IList access
+                    if (target is IList list && index >= 0 && index < list.Count)
+                    {
+                        target = list[index];
+                    }
+                    else
+                    {
+                        return null;
+                    }
                 }
             }
-
-            return target;
         }
+        else
+        {
+            // Handle nested properties
+            currentProperty = currentProperty.FindPropertyRelative(path);
+            if (currentProperty == null || target == null)
+                return null;
+                
+            fieldInfo = currentProperty.GetFieldInfo();
+            if (fieldInfo == null)
+                return null;
+                
+            target = fieldInfo.GetValue(target);
+        }
+    }
+
+    return target;
+}
     }
 }
